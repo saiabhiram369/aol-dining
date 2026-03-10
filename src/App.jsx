@@ -72,21 +72,8 @@ function MealDots({ remaining, total = 14 }) {
   );
 }
 
-function AOLLogo() {
-  return (
-    <svg width={60} height={42} viewBox="0 0 120 80" style={{ marginBottom: 2 }}>
-      <circle cx="60" cy="55" r="22" fill={C.gold} />
-      <circle cx="60" cy="55" r="16" fill={C.lightGold} />
-      {[...Array(10)].map((_, i) => {
-        const a = (i * 36 - 90) * Math.PI / 180;
-        return <line key={i} x1={60+24*Math.cos(a)} y1={55+24*Math.sin(a)} x2={60+32*Math.cos(a)} y2={55+32*Math.sin(a)} stroke={C.gold} strokeWidth="2.5" strokeLinecap="round" />;
-      })}
-      <ellipse cx="22" cy="52" rx="12" ry="7" fill="none" stroke={C.maroon} strokeWidth="2" />
-      <path d="M14,45 Q18,36 24,40" stroke={C.maroon} strokeWidth="2" fill="none" />
-      <ellipse cx="98" cy="52" rx="12" ry="7" fill="none" stroke={C.maroon} strokeWidth="2" />
-      <path d="M106,45 Q102,36 96,40" stroke={C.maroon} strokeWidth="2" fill="none" />
-    </svg>
-  );
+function AOLLogo({ height = 64 }) {
+  return <img src="/logo.jpg" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
 }
 
 function PinPad({ onSubmit, error }) {
@@ -160,10 +147,15 @@ export default function App() {
   async function fetchAll() {
     setPageLoading(true);
     const { data: u } = await supabase.from("users").select("*").order("created_at");
-    const { data: l } = await supabase.from("checkins").select("*").order("checked_in_at", { ascending: false }).limit(50);
+    const { data: l } = await supabase.from("checkins").select("*").order("checked_in_at", { ascending: false }).limit(200);
     if (u) setUsers(u);
     if (l) setLog(l);
     setPageLoading(false);
+  }
+
+  function checkedInToday_user(userId) {
+    const today = new Date().toDateString();
+    return log.some(c => c.user_id === userId && new Date(c.checked_in_at).toDateString() === today);
   }
 
   async function fetchLog() {
@@ -247,11 +239,8 @@ export default function App() {
   const signOut = () => { setWho(null); setView("login"); setCheckinResult(null); setPinError(""); setMyHistory([]); setCheckedInToday(false); };
 
   const Header = ({ extra }) => (
-    <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "14px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <div>
-        <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: 1.5 }}>THE ART OF LIVING</div>
-        <div style={{ fontSize: 10, color: `${C.lightGold}99` }}>Retreat Center · Dining Hall</div>
-      </div>
+    <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {extra}
         <Btn label="Sign out" onClick={signOut} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", fontSize: 11 }} />
@@ -280,11 +269,8 @@ export default function App() {
   // ── HOST DISPLAY ───────────────────────────────────────────────────────────
   if (view === "host") return (
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`, fontFamily: "Georgia,serif" }}>
-      <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "16px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <div>
-          <div style={{ fontWeight: 800, fontSize: 13, letterSpacing: 1.5 }}>THE ART OF LIVING</div>
-          <div style={{ fontSize: 10, color: `${C.lightGold}99` }}>Retreat Center · Dining Hall</div>
-        </div>
+      <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
         <Btn label="← Back" onClick={() => setView("login")} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }} />
       </div>
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px" }}>
@@ -297,7 +283,7 @@ export default function App() {
 
           {/* Kiosk pin pad or success screen */}
           {hostResult ? (
-            <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "28px 24px", textAlign: "center" }}>
+            <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "clamp(16px,3vw,28px) clamp(14px,3vw,24px)", textAlign: "center" }}>
               <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
               <div style={{ fontWeight: 800, color: "#1a7a3e", fontSize: 22, marginBottom: 4 }}>
                 Welcome, {hostResult.user.name}!
@@ -348,28 +334,35 @@ export default function App() {
               </div>
             </div>
           )}
-        </Card>
-
-        {/* Live check-ins */}
-        <Card>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <div style={{ fontWeight: 800, color: C.maroon, fontSize: 16 }}>Live Check-ins Today</div>
-            <Btn label="🔄 Refresh" onClick={fetchLog} variant="outline" small />
+          </Card>
           </div>
-          {log.length === 0 && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
-          {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).map((c, i, arr) => (
-            <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f0e0cc" : "none" }}>
-              <Avatar initials={(c.name || "?").split(" ").map(n => n[0]).join("")} size={36} />
-              <div style={{ flex: 1 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                <div style={{ fontSize: 11, color: "#999" }}><Badge label={c.role} /> · {new Date(c.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Code: {c.code}</div>
-              </div>
-              <div style={{ fontWeight: 700, fontSize: 13, color: c.remaining <= 3 ? "#c00" : C.gold }}>{c.remaining} left</div>
+
+          {/* Right column — live check-ins */}
+          <div>
+          <Card style={{ height: "100%", boxSizing: "border-box" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+              <div style={{ fontWeight: 800, color: C.maroon, fontSize: "clamp(14px,1.5vw,18px)" }}>Live Check-ins Today</div>
+              <Btn label="🔄 Refresh" onClick={fetchLog} variant="outline" small />
             </div>
-          ))}
-        </Card>
-      </div>
-    </div>
+            {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).length === 0
+              && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
+            <div style={{ maxHeight: "60vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+              {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).map((c, i, arr) => (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f0e0cc" : "none" }}>
+                  <Avatar initials={(c.name || "?").split(" ").map(n => n[0]).join("")} size={36} />
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                    <div style={{ fontSize: 11, color: "#999" }}><Badge label={c.role} /> · {new Date(c.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Code: {c.code}</div>
+                  </div>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: c.remaining <= 3 ? "#c00" : C.gold }}>{c.remaining} left</div>
+                </div>
+              ))}
+            </div>
+          </Card>
+          </div>
+
+          </div>{/* end grid */}
+        </div>
   );
 
   // ── CHECK-IN ───────────────────────────────────────────────────────────────
@@ -493,13 +486,13 @@ export default function App() {
         {pageLoading ? <div style={{ textAlign: "center", padding: 60, color: C.maroon, fontWeight: 700 }}>Loading…</div> : <>
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
             {[
-              { label: "Total Users",    val: users.length },
-              { label: "Staff",          val: users.filter(u => u.role === "staff").length },
-              { label: "Residents",      val: users.filter(u => u.role === "resident").length },
-              { label: "Low Balance ⚠️", val: users.filter(u => u.meals <= 3).length, warn: true },
+              { label: "Total Users",       val: users.length },
+              { label: "Checked In Today",  val: users.filter(u => checkedInToday_user(u.id)).length, good: true },
+              { label: "Not Yet Today",     val: users.filter(u => !checkedInToday_user(u.id)).length },
+              { label: "Low Balance ⚠️",    val: users.filter(u => u.meals <= 3).length, warn: true },
             ].map(s => (
               <Card key={s.label} style={{ textAlign: "center", padding: 16 }}>
-                <div style={{ fontSize: 26, fontWeight: 800, color: s.warn && s.val > 0 ? "#c00" : C.maroon }}>{s.val}</div>
+                <div style={{ fontSize: 26, fontWeight: 800, color: s.warn && s.val > 0 ? "#c00" : s.good ? "#1a7a3e" : C.maroon }}>{s.val}</div>
                 <div style={{ fontSize: 11, color: "#999", marginTop: 2 }}>{s.label}</div>
               </Card>
             ))}
@@ -527,8 +520,12 @@ export default function App() {
                 <Avatar initials={u.avatar} size={44} />
                 <div style={{ flex: 1 }}>
                   <div style={{ fontWeight: 700, fontSize: 15 }}>{u.name}</div>
-                  <div style={{ display: "flex", gap: 5, margin: "4px 0", flexWrap: "wrap" }}>
+                  <div style={{ display: "flex", gap: 5, margin: "4px 0", flexWrap: "wrap", alignItems: "center" }}>
                     <Badge label={u.role} />
+                    {checkedInToday_user(u.id)
+                      ? <span style={{ fontSize: 11, fontWeight: 700, color: "#1a7a3e", background: "#e6f9ee", padding: "2px 8px", borderRadius: 20 }}>✅ Checked in today</span>
+                      : <span style={{ fontSize: 11, fontWeight: 700, color: "#999", background: "#f5f5f5", padding: "2px 8px", borderRadius: 20 }}>⬜ Not yet today</span>
+                    }
                     {u.meals <= 3 && <span style={{ fontSize: 11, color: "#c00", fontWeight: 700 }}>⚠️ Low balance</span>}
                   </div>
                   <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 6 }}>
