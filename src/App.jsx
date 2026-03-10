@@ -72,8 +72,13 @@ function MealDots({ remaining, total = 14 }) {
   );
 }
 
-function AOLLogo({ height = 64 }) {
-  return <img src="/logo.jpg" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
+function AOLLogo() {
+  return (
+    <div style={{ textAlign: "center", marginBottom: 8 }}>
+      <div style={{ fontWeight: 800, color: "#6B1F1F", fontSize: 20 }}>Purna Dining Hall</div>
+      <div style={{ fontWeight: 600, color: "#D4890A", fontSize: 13 }}>The Art of Living Retreat Center</div>
+    </div>
+  );
 }
 
 function PinPad({ onSubmit, error }) {
