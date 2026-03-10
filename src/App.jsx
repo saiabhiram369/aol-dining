@@ -141,6 +141,12 @@ export default function App() {
   }, [view]);
 
   useEffect(() => {
+    if (view !== "host") return;
+    const interval = setInterval(fetchLog, 10000);
+    return () => clearInterval(interval);
+  }, [view]);
+
+  useEffect(() => {
     if (who && who.role !== "admin") fetchMyHistory();
   }, [who]);
 
@@ -159,7 +165,11 @@ export default function App() {
   }
 
   async function fetchLog() {
-    const { data } = await supabase.from("checkins").select("*").order("checked_in_at", { ascending: false }).limit(200);
+    const today = new Date().toISOString().slice(0, 10);
+    const { data } = await supabase.from("checkins").select("*")
+      .gte("checked_in_at", today + "T00:00:00")
+      .order("checked_in_at", { ascending: false })
+      .limit(200);
     if (data) setLog(data);
   }
 
@@ -347,10 +357,9 @@ export default function App() {
                 <div style={{ fontWeight: 800, color: C.maroon, fontSize: "clamp(14px,1.5vw,18px)" }}>Live Check-ins Today</div>
                 <Btn label="🔄 Refresh" onClick={fetchLog} variant="outline" small />
               </div>
-              {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).length === 0
-                && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
+              {log.length === 0 && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
               <div style={{ maxHeight: "60vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-                {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).map((c, i, arr) => (
+                {log.map((c, i, arr) => (
                   <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f0e0cc" : "none" }}>
                     <Avatar initials={(c.name || "?").split(" ").map(n => n[0]).join("")} size={36} />
                     <div style={{ flex: 1 }}>
