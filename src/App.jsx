@@ -73,7 +73,7 @@ function MealDots({ remaining, total = 14 }) {
 }
 
 function AOLLogo({ height = 64 }) {
-  return <img src="/logo.jpg" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
+  return <img src="/logo.png" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
 }
 
 function PinPad({ onSubmit, error }) {
@@ -239,7 +239,7 @@ export default function App() {
 
   const Header = ({ extra }) => (
     <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+      <img src="/logo.png" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {extra}
         <Btn label="Sign out" onClick={signOut} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", fontSize: 11 }} />
@@ -267,7 +267,7 @@ export default function App() {
   if (view === "host") return (
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`, fontFamily: "Georgia,serif" }}>
       <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+        <img src="/logo.png" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
         <Btn label="← Back" onClick={() => setView("login")} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }} />
       </div>
 
