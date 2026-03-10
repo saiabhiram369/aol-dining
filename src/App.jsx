@@ -72,8 +72,13 @@ function MealDots({ remaining, total = 14 }) {
   );
 }
 
-function AOLLogo({ height = 64 }) {
-  return <img src="/logo.jpg" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
+function AOLLogo() {
+  return (
+    <div style={{ textAlign: "center", marginBottom: 8 }}>
+      <div style={{ fontWeight: 800, color: C.maroon, fontSize: 20 }}>Purna Dining Hall</div>
+      <div style={{ fontWeight: 600, color: C.gold, fontSize: 13 }}>The Art of Living Retreat Center</div>
+    </div>
+  );
 }
 
 function PinPad({ onSubmit, error }) {
@@ -115,18 +120,17 @@ function PinPad({ onSubmit, error }) {
 const ADMIN = { id: "admin", name: "IT Admin", role: "admin", code: "0000", avatar: "IT" };
 
 export default function App() {
-  const [users, setUsers]         = useState([]);
-  const [log, setLog]             = useState([]);
-  const [view, setView]           = useState("login");
-  const [who, setWho]             = useState(null);
-  const [pinError, setPinError]   = useState("");
+  const [users, setUsers]       = useState([]);
+  const [log, setLog]           = useState([]);
+  const [view, setView]         = useState("login");
+  const [who, setWho]           = useState(null);
+  const [pinError, setPinError] = useState("");
   const [checkinResult, setCheckinResult] = useState(null);
-  const [form, setForm]           = useState({ name: "", role: "resident" });
-  const [loading, setLoading]     = useState(false);
+  const [form, setForm]         = useState({ name: "", role: "resident" });
+  const [loading, setLoading]   = useState(false);
   const [pageLoading, setPageLoading] = useState(false);
   const [myHistory, setMyHistory] = useState([]);
-  const [checkedInToday, setCheckedInToday] = useState(false);
-  const [hostPin, setHostPin]     = useState("");
+  const [hostPin, setHostPin]   = useState("");
   const [hostPinError, setHostPinError] = useState("");
   const [hostLoading, setHostLoading] = useState(false);
   const [hostResult, setHostResult] = useState(null);
@@ -201,7 +205,12 @@ export default function App() {
       setHostPin("");
       return;
     }
-    if (data.meals === 0) { setHostPinError(`${data.name} has no meals remaining. Please visit the front desk.`); setHostLoading(false); setHostPin(""); return; }
+    if (data.meals === 0) {
+      setHostPinError(`${data.name} has no meals remaining. Please visit the front desk.`);
+      setHostLoading(false);
+      setHostPin("");
+      return;
+    }
     const newMeals = data.meals - 1;
     await supabase.from("users").update({ meals: newMeals }).eq("id", data.id);
     await supabase.from("checkins").insert({ user_id: data.id, name: data.name, role: data.role, code: data.code, remaining: newMeals });
@@ -219,7 +228,7 @@ export default function App() {
     const { data: updated } = await supabase.from("users").update({ meals: newMeals }).eq("id", who.id).select().single();
     await supabase.from("checkins").insert({ user_id: who.id, name: who.name, role: who.role, code: who.code, remaining: newMeals });
     setLoading(false);
-    if (updated) { setWho(updated); setCheckinResult({ ok: true, user: updated }); setCheckedInToday(true); fetchMyHistory(); }
+    if (updated) { setWho(updated); setCheckinResult({ ok: true, user: updated }); fetchMyHistory(); }
   }
 
   async function addUser() {
@@ -236,11 +245,14 @@ export default function App() {
   async function removeUser(id)      { await supabase.from("users").delete().eq("id", id); setUsers(p => p.filter(u => u.id !== id)); }
   async function regenCode(id, role) { const code = genCode(role); await supabase.from("users").update({ code }).eq("id", id); setUsers(p => p.map(u => u.id === id ? { ...u, code } : u)); }
 
-  const signOut = () => { setWho(null); setView("login"); setCheckinResult(null); setPinError(""); setMyHistory([]); setCheckedInToday(false); };
+  const signOut = () => { setWho(null); setView("login"); setCheckinResult(null); setPinError(""); setMyHistory([]); };
 
   const Header = ({ extra }) => (
-    <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-      <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+    <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+      <div>
+        <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: 1 }}>Purna Dining Hall</div>
+        <div style={{ fontSize: 11, color: `${C.lightGold}cc` }}>The Art of Living Retreat Center</div>
+      </div>
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         {extra}
         <Btn label="Sign out" onClick={signOut} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white", fontSize: 11 }} />
@@ -251,28 +263,42 @@ export default function App() {
   // ── LOGIN ──────────────────────────────────────────────────────────────────
   if (view === "login") return (
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`,
-      display: "flex
+      display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "Georgia,serif" }}>
+      <Card style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
+        <AOLLogo />
+        <div style={{ fontSize: 13, color: "#999", marginBottom: 28 }}>Enter your 4-digit code to check in</div>
+        {loading ? <div style={{ padding: 30, color: C.maroon, fontWeight: 700 }}>Checking code…</div>
+          : <PinPad onSubmit={handleLogin} error={pinError} />}
+        <div style={{ marginTop: 20 }}>
+          <Btn label="📺 Host Display (no login needed)" onClick={() => setView("host")} variant="ghost" small />
+        </div>
+      </Card>
+    </div>
+  );
 
   // ── HOST DISPLAY ───────────────────────────────────────────────────────────
   if (view === "host") return (
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`, fontFamily: "Georgia,serif" }}>
-      <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "10px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
+      <div style={{ background: `linear-gradient(135deg,${C.maroon},${C.dark})`, color: "white", padding: "12px 24px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div>
+          <div style={{ fontWeight: 800, fontSize: 15, letterSpacing: 1 }}>Purna Dining Hall</div>
+          <div style={{ fontSize: 11, color: `${C.lightGold}cc` }}>The Art of Living Retreat Center</div>
+        </div>
         <Btn label="← Back" onClick={() => setView("login")} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }} />
       </div>
 
       <div style={{ width: "100%", padding: "24px clamp(12px,4vw,40px)", boxSizing: "border-box" }}>
         <div className="host-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 20, maxWidth: 1200, margin: "0 auto" }}>
 
-          {/* Left — status + kiosk */}
+          {/* Left — kiosk */}
           <div>
-            <Card style={{ textAlign: "center", marginBottom: 20 }}>
+            <Card style={{ textAlign: "center" }}>
               <div style={{ color: C.gold, fontWeight: 700, fontSize: "clamp(11px,1.5vw,14px)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Now Serving</div>
               <div style={{ color: C.maroon, fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, marginBottom: 2 }}>Dining Hall Open</div>
               <div style={{ color: "#999", fontSize: "clamp(12px,1.2vw,15px)", marginBottom: 24 }}>{dateStr} · {timeStr}</div>
 
               {hostResult ? (
-                <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "clamp(16px,3vw,28px) clamp(14px,3vw,24px)" }}>
+                <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "28px 24px" }}>
                   <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
                   <div style={{ fontWeight: 800, color: "#1a7a3e", fontSize: 22, marginBottom: 4 }}>Welcome, {hostResult.user.name}!</div>
                   <div style={{ color: "#2a9d4e", fontSize: 14, marginBottom: 16 }}>Enjoy your meal 🙏</div>
@@ -375,11 +401,6 @@ export default function App() {
             <div style={{ display: "flex", gap: 6, justifyContent: "center", margin: "8px 0 16px" }}>
               <Badge label={who.role} />
             </div>
-            {checkedInToday && (
-              <div style={{ background: "#e6f9ee", border: "1.5px solid #2a9d4e", borderRadius: 12, padding: 12, color: "#1a7a3e", fontSize: 13, marginBottom: 14, fontWeight: 700 }}>
-                ✅ You already checked in today!
-              </div>
-            )}
             {who.meals <= 3 && who.meals > 0 && (
               <div style={{ background: "#fff3e0", border: "1.5px solid #e05", borderRadius: 12, padding: 12, color: "#c00", fontSize: 13, marginBottom: 14, fontWeight: 700 }}>
                 ⚠️ Only {who.meals} meal{who.meals !== 1 ? "s" : ""} left — renew at the front desk soon!
@@ -394,9 +415,7 @@ export default function App() {
               ? <div style={{ background: "#fde8e8", borderRadius: 12, padding: 14, color: "#b00", fontSize: 13, margin: "14px 0" }}>
                   Balance is 0. Please visit the front desk to renew your 14-meal plan.
                 </div>
-              : !checkedInToday
-                ? <Btn label={loading ? "Checking in…" : "✅ Check In This Meal"} onClick={doCheckin} disabled={loading} style={{ marginTop: 14, width: "100%" }} />
-                : null
+              : <Btn label={loading ? "Checking in…" : "✅ Check In This Meal"} onClick={doCheckin} disabled={loading} style={{ marginTop: 14, width: "100%" }} />
             }
             {myHistory.length > 0 && (
               <div style={{ marginTop: 24, textAlign: "left" }}>
@@ -446,17 +465,6 @@ export default function App() {
           </Card>
         )}
 
-        {checkinResult?.alreadyCheckedIn && (
-          <Card>
-            <div style={{ fontSize: 64 }}>✅</div>
-            <div style={{ color: "#2a9d4e", fontWeight: 800, fontSize: 22, margin: "10px 0" }}>Already checked in today!</div>
-            <div style={{ color: "#777", fontSize: 13, marginBottom: 20 }}>You've already used your meal for today. See you next meal!</div>
-            <MealDots remaining={who.meals} />
-            <div style={{ fontWeight: 800, fontSize: 20, color: who.meals <= 3 ? "#c00" : C.maroon, margin: "8px 0" }}>{who.meals} meals remaining</div>
-            <Btn label="Back" onClick={() => setCheckinResult(null)} style={{ marginTop: 16, width: "100%" }} />
-          </Card>
-        )}
-
         {checkinResult?.noMeals && (
           <Card>
             <div style={{ fontSize: 56 }}>⚠️</div>
@@ -478,7 +486,6 @@ export default function App() {
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px" }}>
         {pageLoading ? <div style={{ textAlign: "center", padding: 60, color: C.maroon, fontWeight: 700 }}>Loading…</div> : <>
 
-          {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
             {[
               { label: "Total Users",      val: users.length },
@@ -493,7 +500,6 @@ export default function App() {
             ))}
           </div>
 
-          {/* Add user */}
           <Card style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15, marginBottom: 14 }}>➕ Add New User</div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -510,7 +516,6 @@ export default function App() {
             <div style={{ fontSize: 11, color: "#bbb", marginTop: 8 }}>Code is auto-generated · Staff → 9xxx · Resident → 6xxx</div>
           </Card>
 
-          {/* User list */}
           <Card style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15, marginBottom: 14 }}>👥 All Users</div>
             {users.length === 0 && <div style={{ color: "#ccc", fontSize: 13 }}>No users yet. Add one above.</div>}
@@ -542,7 +547,6 @@ export default function App() {
             ))}
           </Card>
 
-          {/* Check-in log */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15 }}>📋 Check-in Log</div>
@@ -579,7 +583,7 @@ export default function App() {
         </>}
       </div>
     </div>
-  )
+  );
 
   return null;
 }
