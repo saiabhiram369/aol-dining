@@ -602,4 +602,4 @@ export default function App() {
   );
 
   return null;
-}git add src/App.jsx && git commit -m "replace logo with text" && git push
+}
