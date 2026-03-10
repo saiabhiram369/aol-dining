@@ -136,8 +136,8 @@ export default function App() {
   const [hostResult, setHostResult] = useState(null);
 
   const now = new Date();
-  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const dateStr = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" });
+  const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", timeZone: "America/New_York" });
+  const dateStr = now.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric", timeZone: "America/New_York" });
 
   useEffect(() => {
     if (view === "admin") fetchAll();
@@ -164,14 +164,16 @@ export default function App() {
   }
 
   function checkedInToday_user(userId) {
-    const today = new Date().toDateString();
-    return log.some(c => c.user_id === userId && new Date(c.checked_in_at).toDateString() === today);
+    const today = new Date().toLocaleDateString("en-US", { timeZone: "America/New_York" });
+    return log.some(c => new Date(c.checked_in_at).toLocaleDateString("en-US", { timeZone: "America/New_York" }) === today);
   }
 
   async function fetchLog() {
-    const today = new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const est = new Date(now.toLocaleString("en-US", { timeZone: "America/New_York" }));
+    const today = est.toISOString().slice(0, 10);
     const { data } = await supabase.from("checkins").select("*")
-      .gte("checked_in_at", today + "T00:00:00")
+      .gte("checked_in_at", today + "T05:00:00") // midnight EST = 5am UTC
       .order("checked_in_at", { ascending: false })
       .limit(200);
     if (data) setLog(data);
