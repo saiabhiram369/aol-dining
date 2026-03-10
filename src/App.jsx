@@ -72,13 +72,8 @@ function MealDots({ remaining, total = 14 }) {
   );
 }
 
-function AOLLogo() {
-  return (
-    <div style={{ textAlign: "center", marginBottom: 8 }}>
-      <div style={{ fontWeight: 800, color: "#6B1F1F", fontSize: 20 }}>Purna Dining Hall</div>
-      <div style={{ fontWeight: 600, color: "#D4890A", fontSize: 13 }}>The Art of Living Retreat Center</div>
-    </div>
-  );
+function AOLLogo({ height = 64 }) {
+  return <img src="/logo.jpg" alt="Art of Living" style={{ height, objectFit: "contain", display: "block", margin: "0 auto 4px" }} />;
 }
 
 function PinPad({ onSubmit, error }) {
@@ -181,11 +176,7 @@ export default function App() {
   async function fetchMyHistory() {
     const { data } = await supabase.from("checkins").select("*")
       .eq("user_id", who.id).order("checked_in_at", { ascending: false }).limit(30);
-    if (data) {
-      setMyHistory(data);
-      const today = new Date().toDateString();
-      setCheckedInToday(data.some(c => new Date(c.checked_in_at).toDateString() === today));
-    }
+    if (data) setMyHistory(data);
   }
 
   async function handleLogin(pin) {
@@ -210,10 +201,6 @@ export default function App() {
       setHostPin("");
       return;
     }
-    const today = new Date().toDateString();
-    const { data: todayCheckins } = await supabase.from("checkins").select("*").eq("user_id", data.id);
-    const alreadyIn = (todayCheckins || []).some(c => new Date(c.checked_in_at).toDateString() === today);
-    if (alreadyIn) { setHostPinError(`${data.name} already checked in today.`); setHostLoading(false); setHostPin(""); return; }
     if (data.meals === 0) { setHostPinError(`${data.name} has no meals remaining. Please visit the front desk.`); setHostLoading(false); setHostPin(""); return; }
     const newMeals = data.meals - 1;
     await supabase.from("users").update({ meals: newMeals }).eq("id", data.id);
@@ -227,7 +214,6 @@ export default function App() {
 
   async function doCheckin() {
     if (!who || who.meals === 0) { setCheckinResult({ noMeals: true }); return; }
-    if (checkedInToday) { setCheckinResult({ alreadyCheckedIn: true }); return; }
     setLoading(true);
     const newMeals = who.meals - 1;
     const { data: updated } = await supabase.from("users").update({ meals: newMeals }).eq("id", who.id).select().single();
@@ -265,18 +251,7 @@ export default function App() {
   // ── LOGIN ──────────────────────────────────────────────────────────────────
   if (view === "login") return (
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`,
-      display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "Georgia,serif" }}>
-      <Card style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
-        <AOLLogo height={80} />
-        <div style={{ fontSize: 13, color: "#999", marginBottom: 28 }}>Enter your 4-digit code to check in</div>
-        {loading ? <div style={{ padding: 30, color: C.maroon, fontWeight: 700 }}>Checking code…</div>
-          : <PinPad onSubmit={handleLogin} error={pinError} />}
-        <div style={{ marginTop: 20 }}>
-          <Btn label="📺 Host Display (no login needed)" onClick={() => setView("host")} variant="ghost" small />
-        </div>
-      </Card>
-    </div>
-  );
+      display: "flex
 
   // ── HOST DISPLAY ───────────────────────────────────────────────────────────
   if (view === "host") return (
@@ -604,7 +579,7 @@ export default function App() {
         </>}
       </div>
     </div>
-  );
+  )
 
   return null;
 }
