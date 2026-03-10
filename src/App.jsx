@@ -126,10 +126,10 @@ export default function App() {
   const [pageLoading, setPageLoading] = useState(false);
   const [myHistory, setMyHistory] = useState([]);
   const [checkedInToday, setCheckedInToday] = useState(false);
-  const [hostPin, setHostPin]         = useState("");
+  const [hostPin, setHostPin]     = useState("");
   const [hostPinError, setHostPinError] = useState("");
   const [hostLoading, setHostLoading] = useState(false);
-  const [hostResult, setHostResult]   = useState(null); // { user, remaining } after success
+  const [hostResult, setHostResult] = useState(null);
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
@@ -159,7 +159,7 @@ export default function App() {
   }
 
   async function fetchLog() {
-    const { data } = await supabase.from("checkins").select("*").order("checked_in_at", { ascending: false }).limit(50);
+    const { data } = await supabase.from("checkins").select("*").order("checked_in_at", { ascending: false }).limit(200);
     if (data) setLog(data);
   }
 
@@ -183,12 +183,12 @@ export default function App() {
     setWho(data); setView("checkin");
   }
 
-  // Kiosk check-in
-  async function handleHostPin() {
-    if (hostPin.length !== 4) return;
+  async function handleHostPin(pin) {
+    const code = pin || hostPin;
+    if (code.length !== 4) return;
     setHostPinError("");
     setHostLoading(true);
-    const { data, error } = await supabase.from("users").select("*").eq("code", hostPin).single();
+    const { data, error } = await supabase.from("users").select("*").eq("code", code).single();
     if (error || !data) {
       setHostPinError("Code not found. Please try again.");
       setHostLoading(false);
@@ -207,7 +207,6 @@ export default function App() {
     setHostPin("");
     setHostResult({ user: { ...data, meals: newMeals } });
     fetchLog();
-    // Auto-reset after 4 seconds
     setTimeout(() => setHostResult(null), 4000);
   }
 
@@ -253,9 +252,7 @@ export default function App() {
     <div style={{ minHeight: "100vh", width: "100%", background: `linear-gradient(160deg,${C.cream},#efe5d5)`,
       display: "flex", alignItems: "center", justifyContent: "center", padding: 16, fontFamily: "Georgia,serif" }}>
       <Card style={{ maxWidth: 400, width: "100%", textAlign: "center" }}>
-        <AOLLogo />
-        <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15, letterSpacing: 1.5 }}>THE ART OF LIVING</div>
-        <div style={{ color: C.gold, fontSize: 12, marginBottom: 6 }}>Retreat Center · Dining Hall</div>
+        <AOLLogo height={80} />
         <div style={{ fontSize: 13, color: "#999", marginBottom: 28 }}>Enter your 4-digit code to check in</div>
         {loading ? <div style={{ padding: 30, color: C.maroon, fontWeight: 700 }}>Checking code…</div>
           : <PinPad onSubmit={handleLogin} error={pinError} />}
@@ -273,96 +270,103 @@ export default function App() {
         <img src="/logo.jpg" alt="Art of Living" style={{ height: 48, objectFit: "contain", filter: "brightness(0) invert(1)" }} />
         <Btn label="← Back" onClick={() => setView("login")} variant="outline" small style={{ borderColor: "rgba(255,255,255,0.4)", color: "white" }} />
       </div>
-      <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px" }}>
 
-        {/* Status banner */}
-        <Card style={{ textAlign: "center", marginBottom: 20 }}>
-          <div style={{ color: C.gold, fontWeight: 700, fontSize: 12, letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Now Serving</div>
-          <div style={{ color: C.maroon, fontSize: 28, fontWeight: 800, marginBottom: 2 }}>Dining Hall Open</div>
-          <div style={{ color: "#999", fontSize: 13, marginBottom: 24 }}>{dateStr} · {timeStr}</div>
+      <div style={{ width: "100%", padding: "24px clamp(12px,4vw,40px)", boxSizing: "border-box" }}>
+        <div className="host-grid" style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) minmax(0,1fr)", gap: 20, maxWidth: 1200, margin: "0 auto" }}>
 
-          {/* Kiosk pin pad or success screen */}
-          {hostResult ? (
-            <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "clamp(16px,3vw,28px) clamp(14px,3vw,24px)", textAlign: "center" }}>
-              <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
-              <div style={{ fontWeight: 800, color: "#1a7a3e", fontSize: 22, marginBottom: 4 }}>
-                Welcome, {hostResult.user.name}!
-              </div>
-              <div style={{ color: "#2a9d4e", fontSize: 14, marginBottom: 16 }}>Enjoy your meal 🙏</div>
-              <MealDots remaining={hostResult.user.meals} />
-              <div style={{ fontWeight: 800, fontSize: 20, color: hostResult.user.meals <= 3 ? "#c00" : C.maroon, marginTop: 6 }}>
-                {hostResult.user.meals} <span style={{ fontWeight: 400, fontSize: 14, color: "#999" }}>/ 14 meals remaining</span>
-              </div>
-              {hostResult.user.meals <= 3 && (
-                <div style={{ marginTop: 10, color: "#c00", fontSize: 12, fontWeight: 700 }}>⚠️ Please renew at the front desk soon!</div>
-              )}
-              <div style={{ marginTop: 18, color: "#999", fontSize: 12 }}>Resetting in a moment…</div>
-            </div>
-          ) : (
-            <div style={{ background: C.soft, borderRadius: 16, padding: "20px 24px" }}>
-              <div style={{ fontWeight: 800, color: C.maroon, fontSize: 16, marginBottom: 4 }}>Enter Your 4-Digit Code</div>
-              <div style={{ fontSize: 12, color: "#aaa", marginBottom: 16 }}>
-                Staff codes start with <b style={{ color: C.maroon }}>9</b> · Resident codes start with <b style={{ color: C.maroon }}>6</b>
-              </div>
-              <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 14 }}>
-                {[0,1,2,3].map(i => (
-                  <div key={i} style={{
-                    width: 48, height: 56, borderRadius: 12,
-                    border: `2px solid ${i < hostPin.length ? C.maroon : "#ddd"}`,
-                    background: i < hostPin.length ? "#fff5f0" : "white",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    fontSize: 28, fontWeight: 800, color: C.maroon,
-                    transition: "all 0.15s"
-                  }}>{hostPin[i] ? "●" : ""}</div>
-                ))}
-              </div>
-              {hostPinError && <div style={{ color: "#c00", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{hostPinError}</div>}
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, maxWidth: 240, margin: "0 auto" }}>
-                {[1,2,3,4,5,6,7,8,9].map(n => (
-                  <button key={n}
-                    onClick={() => { if (hostPin.length < 4) { const p = hostPin + n; setHostPin(p); if (p.length === 4) setTimeout(() => handleHostPin(), 0); } }}
-                    style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "white", fontSize: 22, fontWeight: 700, cursor: "pointer", color: C.dark, boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>{n}</button>
-                ))}
-                <button onClick={() => { setHostPin(p => p.slice(0,-1)); setHostPinError(""); }}
-                  style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "#fdf0e8", fontSize: 16, fontWeight: 700, cursor: "pointer", color: C.maroon }}>⌫</button>
-                <button onClick={() => { if (hostPin.length < 4) { const p = hostPin + "0"; setHostPin(p); if (p.length === 4) setTimeout(() => handleHostPin(), 0); } }}
-                  style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "white", fontSize: 22, fontWeight: 700, cursor: "pointer", color: C.dark }}>0</button>
-                <button onClick={handleHostPin} disabled={hostPin.length !== 4 || hostLoading}
-                  style={{ height: 56, borderRadius: 12, border: "none", background: hostPin.length === 4 ? `linear-gradient(135deg,${C.maroon},${C.dark})` : "#eee", fontSize: 18, fontWeight: 700, cursor: hostPin.length === 4 ? "pointer" : "default", color: hostPin.length === 4 ? "white" : "#aaa" }}>
-                  {hostLoading ? "…" : "✓"}
-                </button>
-              </div>
-            </div>
-          )}
-          </Card>
-          </div>
-
-          {/* Right column — live check-ins */}
+          {/* Left — status + kiosk */}
           <div>
-          <Card style={{ height: "100%", boxSizing: "border-box" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-              <div style={{ fontWeight: 800, color: C.maroon, fontSize: "clamp(14px,1.5vw,18px)" }}>Live Check-ins Today</div>
-              <Btn label="🔄 Refresh" onClick={fetchLog} variant="outline" small />
-            </div>
-            {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).length === 0
-              && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
-            <div style={{ maxHeight: "60vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
-              {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).map((c, i, arr) => (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f0e0cc" : "none" }}>
-                  <Avatar initials={(c.name || "?").split(" ").map(n => n[0]).join("")} size={36} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
-                    <div style={{ fontSize: 11, color: "#999" }}><Badge label={c.role} /> · {new Date(c.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Code: {c.code}</div>
+            <Card style={{ textAlign: "center", marginBottom: 20 }}>
+              <div style={{ color: C.gold, fontWeight: 700, fontSize: "clamp(11px,1.5vw,14px)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 4 }}>Now Serving</div>
+              <div style={{ color: C.maroon, fontSize: "clamp(22px,3vw,34px)", fontWeight: 800, marginBottom: 2 }}>Dining Hall Open</div>
+              <div style={{ color: "#999", fontSize: "clamp(12px,1.2vw,15px)", marginBottom: 24 }}>{dateStr} · {timeStr}</div>
+
+              {hostResult ? (
+                <div style={{ background: "#e6f9ee", border: "2px solid #2a9d4e", borderRadius: 16, padding: "clamp(16px,3vw,28px) clamp(14px,3vw,24px)" }}>
+                  <div style={{ fontSize: 56, marginBottom: 8 }}>✅</div>
+                  <div style={{ fontWeight: 800, color: "#1a7a3e", fontSize: 22, marginBottom: 4 }}>Welcome, {hostResult.user.name}!</div>
+                  <div style={{ color: "#2a9d4e", fontSize: 14, marginBottom: 16 }}>Enjoy your meal 🙏</div>
+                  <MealDots remaining={hostResult.user.meals} />
+                  <div style={{ fontWeight: 800, fontSize: 20, color: hostResult.user.meals <= 3 ? "#c00" : C.maroon, marginTop: 6 }}>
+                    {hostResult.user.meals} <span style={{ fontWeight: 400, fontSize: 14, color: "#999" }}>/ 14 meals remaining</span>
                   </div>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: c.remaining <= 3 ? "#c00" : C.gold }}>{c.remaining} left</div>
+                  {hostResult.user.meals <= 3 && <div style={{ marginTop: 10, color: "#c00", fontSize: 12, fontWeight: 700 }}>⚠️ Please renew at the front desk soon!</div>}
+                  <div style={{ marginTop: 18, color: "#999", fontSize: 12 }}>Resetting in a moment…</div>
                 </div>
-              ))}
-            </div>
-          </Card>
+              ) : (
+                <div style={{ background: C.soft, borderRadius: 16, padding: "20px 24px" }}>
+                  <div style={{ fontWeight: 800, color: C.maroon, fontSize: 16, marginBottom: 4 }}>Enter Your 4-Digit Code</div>
+                  <div style={{ fontSize: 12, color: "#aaa", marginBottom: 16 }}>
+                    Staff codes start with <b style={{ color: C.maroon }}>9</b> · Resident codes start with <b style={{ color: C.maroon }}>6</b>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 14 }}>
+                    {[0,1,2,3].map(i => (
+                      <div key={i} style={{
+                        width: 48, height: 56, borderRadius: 12,
+                        border: `2px solid ${i < hostPin.length ? C.maroon : "#ddd"}`,
+                        background: i < hostPin.length ? "#fff5f0" : "white",
+                        display: "flex", alignItems: "center", justifyContent: "center",
+                        fontSize: 28, fontWeight: 800, color: C.maroon, transition: "all 0.15s"
+                      }}>{hostPin[i] ? "●" : ""}</div>
+                    ))}
+                  </div>
+                  {hostPinError && <div style={{ color: "#c00", fontWeight: 700, fontSize: 13, marginBottom: 10 }}>{hostPinError}</div>}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8, maxWidth: 240, margin: "0 auto" }}>
+                    {[1,2,3,4,5,6,7,8,9].map(n => (
+                      <button key={n} onClick={() => {
+                        if (hostPin.length < 4) {
+                          const p = hostPin + n;
+                          setHostPin(p);
+                          if (p.length === 4) setTimeout(() => handleHostPin(p), 0);
+                        }
+                      }} style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "white", fontSize: 22, fontWeight: 700, cursor: "pointer", color: C.dark, boxShadow: "0 2px 6px rgba(0,0,0,0.06)" }}>{n}</button>
+                    ))}
+                    <button onClick={() => { setHostPin(p => p.slice(0,-1)); setHostPinError(""); }}
+                      style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "#fdf0e8", fontSize: 16, fontWeight: 700, cursor: "pointer", color: C.maroon }}>⌫</button>
+                    <button onClick={() => {
+                      if (hostPin.length < 4) {
+                        const p = hostPin + "0";
+                        setHostPin(p);
+                        if (p.length === 4) setTimeout(() => handleHostPin(p), 0);
+                      }
+                    }} style={{ height: 56, borderRadius: 12, border: `1.5px solid #e0d0c0`, background: "white", fontSize: 22, fontWeight: 700, cursor: "pointer", color: C.dark }}>0</button>
+                    <button onClick={() => handleHostPin(hostPin)} disabled={hostPin.length !== 4 || hostLoading}
+                      style={{ height: 56, borderRadius: 12, border: "none", background: hostPin.length === 4 ? `linear-gradient(135deg,${C.maroon},${C.dark})` : "#eee", fontSize: 18, fontWeight: 700, cursor: hostPin.length === 4 ? "pointer" : "default", color: hostPin.length === 4 ? "white" : "#aaa" }}>
+                      {hostLoading ? "…" : "✓"}
+                    </button>
+                  </div>
+                </div>
+              )}
+            </Card>
           </div>
 
-          </div>{/* end grid */}
+          {/* Right — live check-ins */}
+          <div>
+            <Card style={{ height: "100%", boxSizing: "border-box" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+                <div style={{ fontWeight: 800, color: C.maroon, fontSize: "clamp(14px,1.5vw,18px)" }}>Live Check-ins Today</div>
+                <Btn label="🔄 Refresh" onClick={fetchLog} variant="outline" small />
+              </div>
+              {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).length === 0
+                && <div style={{ color: "#ccc", fontSize: 13 }}>No check-ins yet.</div>}
+              <div style={{ maxHeight: "60vh", overflowY: "auto", display: "flex", flexDirection: "column", gap: 6 }}>
+                {log.filter(c => new Date(c.checked_in_at).toDateString() === new Date().toDateString()).map((c, i, arr) => (
+                  <div key={i} style={{ display: "flex", alignItems: "center", gap: 12, padding: "10px 0", borderBottom: i < arr.length - 1 ? "1px solid #f0e0cc" : "none" }}>
+                    <Avatar initials={(c.name || "?").split(" ").map(n => n[0]).join("")} size={36} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontWeight: 700, fontSize: 14 }}>{c.name}</div>
+                      <div style={{ fontSize: 11, color: "#999" }}><Badge label={c.role} /> · {new Date(c.checked_in_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })} · Code: {c.code}</div>
+                    </div>
+                    <div style={{ fontWeight: 700, fontSize: 13, color: c.remaining <= 3 ? "#c00" : C.gold }}>{c.remaining} left</div>
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </div>
+
         </div>
+      </div>
+    </div>
   );
 
   // ── CHECK-IN ───────────────────────────────────────────────────────────────
@@ -484,12 +488,14 @@ export default function App() {
       } />
       <div style={{ maxWidth: 800, margin: "0 auto", padding: "24px 20px" }}>
         {pageLoading ? <div style={{ textAlign: "center", padding: 60, color: C.maroon, fontWeight: 700 }}>Loading…</div> : <>
+
+          {/* Stats */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 22 }}>
             {[
-              { label: "Total Users",       val: users.length },
-              { label: "Checked In Today",  val: users.filter(u => checkedInToday_user(u.id)).length, good: true },
-              { label: "Not Yet Today",     val: users.filter(u => !checkedInToday_user(u.id)).length },
-              { label: "Low Balance ⚠️",    val: users.filter(u => u.meals <= 3).length, warn: true },
+              { label: "Total Users",      val: users.length },
+              { label: "Checked In Today", val: users.filter(u => checkedInToday_user(u.id)).length, good: true },
+              { label: "Not Yet Today",    val: users.filter(u => !checkedInToday_user(u.id)).length },
+              { label: "Low Balance ⚠️",   val: users.filter(u => u.meals <= 3).length, warn: true },
             ].map(s => (
               <Card key={s.label} style={{ textAlign: "center", padding: 16 }}>
                 <div style={{ fontSize: 26, fontWeight: 800, color: s.warn && s.val > 0 ? "#c00" : s.good ? "#1a7a3e" : C.maroon }}>{s.val}</div>
@@ -497,6 +503,8 @@ export default function App() {
               </Card>
             ))}
           </div>
+
+          {/* Add user */}
           <Card style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15, marginBottom: 14 }}>➕ Add New User</div>
             <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
@@ -512,6 +520,8 @@ export default function App() {
             </div>
             <div style={{ fontSize: 11, color: "#bbb", marginTop: 8 }}>Code is auto-generated · Staff → 9xxx · Resident → 6xxx</div>
           </Card>
+
+          {/* User list */}
           <Card style={{ marginBottom: 20 }}>
             <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15, marginBottom: 14 }}>👥 All Users</div>
             {users.length === 0 && <div style={{ color: "#ccc", fontSize: 13 }}>No users yet. Add one above.</div>}
@@ -542,6 +552,8 @@ export default function App() {
               </div>
             ))}
           </Card>
+
+          {/* Check-in log */}
           <Card>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
               <div style={{ fontWeight: 800, color: C.maroon, fontSize: 15 }}>📋 Check-in Log</div>
